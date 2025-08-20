@@ -1,0 +1,21 @@
+{
+  "name": "Local Launch",
+  "short_name": "LocalLaunch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Empowering local businesses to go online",
+  "icons": [
+    {
+      "src": "/logowebapp.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/rocket.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#000000"
+}
