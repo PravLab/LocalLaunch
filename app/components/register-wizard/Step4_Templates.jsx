@@ -6,6 +6,7 @@ import Image from "next/image";
 import { CheckCircle, X, LayoutTemplate } from "lucide-react";
 import { baloo, poppins } from "@/src/font";
 
+
 const allTemplates = [
   { id: "grocery-modern", title: "Modern Grocery", type: "grocery", img: "/templates/grocery1.png" },
   { id: "grocery-fresh", title: "Fresh Mart", type: "grocery", img: "/templates/grocery2.png" },

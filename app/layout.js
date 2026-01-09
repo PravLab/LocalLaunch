@@ -3,7 +3,7 @@ import { baloo, poppins, rubik } from "@/src/font";
 import { BusinessProvider } from "@/src/context/BusinessContext";
 import { Toaster } from 'sonner';
 import { GoogleOAuthProvider } from "@react-oauth/google";
-
+import { AuthProvider } from "@/src/context/AuthContext";
 //import { AdminModalProvider } from '@/components/AdminLoginModal';
 import "./globals.css";
 import "swiper/css";
@@ -72,10 +72,13 @@ export default  function RootLayout({ children, params }) {
         <div id="modal-root"></div>
 
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
-          <BusinessProvider slug={slug}>
+          <AuthProvider>
+             <BusinessProvider slug={slug}>
             <Toaster richColors position="top-center" />
             {children}
           </BusinessProvider>
+          </AuthProvider>
+         
         </GoogleOAuthProvider>
       </body>
     </html>

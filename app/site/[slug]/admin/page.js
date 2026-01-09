@@ -78,18 +78,18 @@ if (data.admin_password) {
     fetchData();
   }, [slug, router]);
 
-  const handleLogout = async () => {
-    // Remove cookies via secure API call
-    await fetch("/api/logout-admin", {
-      method: "POST",
-    });
+  // const handleLogout = async () => {
+  //   // Remove cookies via secure API call
+  //   await fetch("/api/logout-admin", {
+  //     method: "POST",
+  //   });
 
-    // Also logout from Supabase
-    await supabase.auth.signOut();
+  //   // Also logout from Supabase
+  //   await supabase.auth.signOut();
 
-    // Redirect to home page
-    router.replace("/");
-  };
+  //   // Redirect to home page
+  //   router.replace("/");
+  // };
 
   if (loading || !siteData) {
     return (
@@ -106,7 +106,8 @@ if (data.admin_password) {
     <div className="min-h-screen p-6 bg-gray-50">
       <div className="max-w-6xl mx-auto">
         <header className="flex justify-between items-center mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-          <div>
+            <div>
+             <Link href="/" className="text-black font-bold border-2 border-black ">◀⬅Go to home</Link>
             <h1 className="text-3xl font-bold text-gray-800">
               {siteData.business_name || siteData.name} Admin
             </h1>
@@ -119,12 +120,7 @@ if (data.admin_password) {
             >
               View Site
             </Link>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-            >
-              Logout
-            </button>
+            
           </div>
         </header>
 

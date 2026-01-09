@@ -1,8 +1,13 @@
 const isDev = process.env.NODE_ENV === "development";
 
-const nextConfig = {
+const baseConfig = {
   images: {
-    domains: ["ka7jrgzxc9m10i0t.public.blob.vercel-storage.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.public.blob.vercel-storage.com",
+      },
+    ],
   },
   env: {
     SUPABASE_URL: process.env.SUPABASE_URL,
@@ -11,12 +16,10 @@ const nextConfig = {
   },
 };
 
-// 👇 async wrapper needed in .mjs
-export default async function config() {
+export default async () => {
   const { default: withPWA } = await import("next-pwa");
-
   return withPWA({
-    ...nextConfig,
+    ...baseConfig,
     pwa: {
       dest: "public",
       register: true,
@@ -24,4 +27,4 @@ export default async function config() {
       disable: isDev,
     },
   });
-}
+};

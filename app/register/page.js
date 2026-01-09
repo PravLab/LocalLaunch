@@ -1,15 +1,47 @@
+// app/register/page.js
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { jwtVerify } from "jose";
 import RegisterWizard from "@/app/components/register-wizard/RegisterWizard";
-// import RegisterWrapper from "@/app/components/register-wizard/RegisterWrapper";
 
 export const metadata = {
-  title: "Create Your Free Business Website | Local Launch",
-  description: "Register your local business and launch a beautiful online store in minutes. Free, simple, and powerful!",
+  title: "Create Your Business Website | LocalLaunch",
+  description: "Set up your online store in 2 minutes.",
 };
 
-export default function RegisterPage() {
+async function verifyPaymentAccess() {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("registration_access")?.value;
+
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(accessToken, secret);
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+export default async function RegisterPage() {
+  // Server-side payment verification
+  const paymentData = await verifyPaymentAccess();
+
+  if (!paymentData) {
+    redirect("/checkout");
+  }
+
   return (
-      <RegisterWizard />
-    // <RegisterWrapper>
-    // </RegisterWrapper>
+    <RegisterWizard 
+      paymentData={{
+        paymentId: paymentData.paymentId,
+        orderId: paymentData.orderId,
+        orderRef: paymentData.orderRef,
+        plan: paymentData.plan,
+      }}
+    />
   );
 }

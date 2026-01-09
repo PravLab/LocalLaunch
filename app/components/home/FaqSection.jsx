@@ -2,22 +2,16 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  ChevronDown,
-  HelpCircle,
-  Smartphone,
-  LayoutDashboard,
-  LifeBuoy,
-} from "lucide-react";
+import { ChevronDown, HelpCircle, MapPin, Store, Search, LifeBuoy } from "lucide-react";
 import { baloo, poppins } from "@/src/font";
 
 const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 30 },
   visible: (i = 1) => ({
     opacity: 1,
     y: 0,
     transition: {
-      delay: i * 0.15,
+      delay: i * 0.1,
       duration: 0.6,
       ease: "easeOut",
     },
@@ -26,70 +20,73 @@ const fadeIn = {
 
 const faqs = [
   {
-    question: "Kya ye service bilkul free hai?",
+    question: "Local Launch Marketplace kya hai?",
     answer:
-      "Bilkul! Local Launch par apni dukaan ki website banana 100% free hai — bina kisi chhupi fees ke. Shuruaat ke liye aapko sirf kuch basic info deni hoti hai.",
+      "Ye ek smart digital bazaar hai jahan aap apne area ke verified local businesses ko explore kar sakte ho — restaurant, store, gym, repair shop, aur aur bhi. Har business ka apna mini-website hota hai.",
+    icon: Store,
+  },
+  {
+    question: "Mujhe location on karni padegi kya?",
+    answer:
+      "Haan, agar aap chahte hain nearby businesses dikhein to location allow karna best hai. Varna aap manually bhi search kar sakte ho.",
+    icon: MapPin,
+  },
+  {
+    question: "Main apna business kaise list kar sakta hu?",
+    answer:
+      "Simple hai! Bas 'Become a Seller' par click karke register karein. Aapka store turant online ho jaayega aur marketplace pe visible hoga.",
+    icon: Search,
+  },
+  {
+    question: "Kya Local Launch pe listed businesses verified hote hain?",
+    answer:
+      "Haan, har business verify kiya jata hai before listing. Ham ensure karte hain ki aapko genuine aur active dukaan hi mile.",
     icon: HelpCircle,
   },
   {
-    question: "Kya mujhe coding ya developer ki zarurat padegi?",
+    question: "Agar mujhe help chahiye to?",
     answer:
-      "Zarurat nahi! Sab kuch pre-built hai. Aap sirf form fill karke aur images upload karke apni dukaan turant online laa sakte hain.",
-    icon: Smartphone,
-  },
-  {
-    question: "Products aur orders kaise handle karenge?",
-    answer:
-      "Aapko milega ek smart aur simple admin panel jisme aap products manage kar sakte hain aur orders ko real-time track kar sakte hain.",
-    icon: LayoutDashboard,
-  },
-  {
-    question: "Agar koi dikkat aaye toh help kaise milegi?",
-    answer:
-      "WhatsApp par humari support team 24/7 ready rehti hai aapki madad ke liye. Direct help sirf ek message door hai!",
+      "Aap hamare WhatsApp support se direct baat kar sakte hain — 24/7 available for sellers and customers dono ke liye.",
     icon: LifeBuoy,
-  },
-  {
-    question: "📱 Mobile se admin panel kaise kholein?",
-    answer:
-      "Mobile site ke top right menu (≡) mein 'Admin' option milega. Uspe tap karte hi aapka dashboard khul jaayega.",
-    icon: Smartphone,
   },
 ];
 
-const FaqSection = () => {
+export default function MarketplaceFaq() {
   return (
-    <section className="relative py-24 px-6 overflow-hidden bg-white text-gray-800">
-      {/* Background Visuals */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute -top-40 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 opacity-20 blur-[160px] animate-pulse"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-pink-200 opacity-10 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-white/10 to-transparent mix-blend-overlay z-10" />
+    <section className="relative py-24 px-6 overflow-hidden bg-[#0B0F19] text-gray-100">
+      {/* Glowing Background Pattern */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute w-[900px] h-[900px] -top-80 left-1/2 -translate-x-1/2 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.25)_0%,transparent_70%)] blur-[160px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.15)_0%,transparent_70%)] blur-[160px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/40 to-transparent mix-blend-overlay" />
       </div>
 
-      {/* FAQ Content */}
-      <div className="relative z-10 text-center">
-        <motion.h3
+      {/* Title Section */}
+      <div className="text-center max-w-3xl mx-auto relative z-10">
+        <motion.h2
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeIn}
-          className={`${baloo.className} text-3xl md:text-4xl font-bold text-gray-900 mb-4`}
+          className={`${baloo.className} text-4xl md:text-5xl font-bold text-white mb-4`}
         >
-          🤔 FAQs – Aapke Sawalon ke Jawaab
-        </motion.h3>
+          ⚡ Marketplace FAQs
+        </motion.h2>
+
         <motion.p
           initial="hidden"
           whileInView="visible"
           custom={2}
-          viewport={{ once: true }}
           variants={fadeIn}
-          className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto mb-12"
+          viewport={{ once: true }}
+          className="text-gray-400 text-base md:text-lg max-w-xl mx-auto mb-12"
         >
-          Pehli baar online aane wale local businesses ke liye sabse common sawal – aur unke seedhe, simple jawaab.
+          Confused? Yahaan hain sab sawalon ke jawaab — simple aur clear.  
+          Har buyer aur seller ke liye ek jagah.
         </motion.p>
       </div>
 
+      {/* FAQ Cards */}
       <div className="relative z-10 max-w-3xl mx-auto space-y-6">
         {faqs.map((faq, idx) => {
           const Icon = faq.icon;
@@ -101,26 +98,32 @@ const FaqSection = () => {
               viewport={{ once: true }}
               custom={idx + 1}
               variants={fadeIn}
-              className="group bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl p-5 shadow-md hover:shadow-xl transition-all duration-300"
+              className="group bg-[#111827]/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-[0_0_15px_rgba(99,102,241,0.15)] hover:shadow-[0_0_25px_rgba(99,102,241,0.3)] transition-all duration-300"
             >
-              <summary className="flex items-center justify-between font-medium text-gray-800 cursor-pointer select-none">
-                <div className="flex items-center gap-3">
-                  <Icon className="text-indigo-500 w-5 h-5 shrink-0 animate-pulse" />
-                  <span className={`${poppins.className} text-base md:text-lg`}>
+              <summary className="flex items-center justify-between cursor-pointer select-none">
+                <div className="flex items-center gap-4">
+                  <div className="bg-indigo-500/20 p-2 rounded-lg">
+                    <Icon className="text-indigo-400 w-5 h-5" />
+                  </div>
+                  <span
+                    className={`${poppins.className} text-lg font-medium text-gray-100 group-hover:text-indigo-400 transition`}
+                  >
                     {faq.question}
                   </span>
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" />
+                <ChevronDown className="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform duration-300" />
               </summary>
-              <p className="mt-3 text-sm text-gray-600 leading-relaxed pl-8 pr-2">
+
+              <p className="mt-3 text-gray-400 leading-relaxed pl-12 pr-4 text-[15px]">
                 {faq.answer}
               </p>
             </motion.details>
           );
         })}
       </div>
+
+      {/* Bottom Glow Line */}
+      {/* <div className="mt-16 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 rounded-full opacity-60" /> */}
     </section>
   );
-};
-
-export default FaqSection;
+}

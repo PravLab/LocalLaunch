@@ -1,227 +1,513 @@
-// // app/site/[slug]/admin/payments/page.jsx
-// 'use client'; // Ye zaroori hai kyunki hum useState, useEffect use karenge
+// /app/site/[slug]/admin/payments/page.js
+"use client";
 
-// import { useState, useEffect } from 'react';
-// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'; // Supabase client for browser
-// import { useParams } from 'next/navigation'; // URL ke [slug] ko access karne ke liye
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  FaMoneyBillWave,
+  FaEye,
+  FaEyeSlash,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaTrash,
+  FaArrowLeft,
+  FaLock,
+} from "react-icons/fa";
+import { SiRazorpay } from "react-icons/si";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
 
-// // IMPORTANT: Aapko apni Lucia user/session context yahan get karni hogi.
-// // Ye ek example hai. Apne project ke hisaab se adjust karein.
-// // Agar aapke paas useAuth hook hai jo current user deta hai:
-// // import { useAuth } from '@/hooks/useAuth'; // Ya jo bhi path hai
-// // const { user } = useAuth(); // Yahin se user ID mil jaayegi
-// // Agar nahi hai, toh aapko session server component se pass karna hoga.
+export default function PaymentSettingsPage() {
+  const { slug } = useParams();
+  const router = useRouter();
 
-// export default function PaymentSettingsPage() {
-//     const [supabase] = useState(() => createClientComponentClient());
-//     const params = useParams(); // URL se slug nikalne ke liye
-//     const businessSlug = params.slug; // Ye aapka business ka slug hoga
+  const isDev = process.env.NODE_ENV !== "production";
 
-//     const [settings, setSettings] = useState({
-//         razorpay_key_id: '',
-//         razorpay_secret_key: '',
-//     });
-//     const [loading, setLoading] = useState(true);
-//     const [message, setMessage] = useState('');
-//     const [ownerUserId, setOwnerUserId] = useState(null); // Owner ka user ID stored in DB
-//     const [businessId, setBusinessId] = useState(null); // Business ka actual ID from DB
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [business, setBusiness] = useState(null);
 
-//     // --- TEMPORARY: Lucia User ID placeholder ---
-//     // Jab tak aap useAuth() ya server se user ID nahi laate,
-//     // aapko yahan hardcode karna pad sakta hai testing ke liye.
-//     // YA: aapko confirm karna hoga ki current logged in user, is business ka owner hai.
-//     // For now, hum assume karenge ki `auth.uid()` RLS se kaam karega.
-//     // But UI level par bhi check karna better hai.
-//     // Is example mein, hum Supabase se owner_user_id fetch karenge aur verify karenge.
-//     // ---------------------------------------------
+  const [settings, setSettings] = useState({
+    razorpay_enabled: false,
+    razorpay_key_masked: null,
+    payment_methods: { cod: true, online: false },
+  });
 
-//     useEffect(() => {
-//         async function fetchSettings() {
-//             setLoading(true);
-//             setMessage('');
+  const [credentials, setCredentials] = useState({
+    razorpay_key_id: "",
+    razorpay_key_secret: "",
+  });
 
-//             if (!businessSlug) {
-//                 setMessage('Error: Business slug not found in URL.');
-//                 setLoading(false);
-//                 return;
-//             }
+  const [showSecret, setShowSecret] = useState(false);
+  const [showCredentialForm, setShowCredentialForm] = useState(false);
 
-//             // Step 1: Business details fetch karo slug se
-//             const { data: businessData, error: businessError } = await supabase
-//                 .from('businesses')
-//                 .select('id, owner_user_id, razorpay_key_id, razorpay_secret_key')
-//                 .eq('slug', businessSlug)
-//                 .single();
+  useEffect(() => {
+    if (slug) {
+      fetchBusinessAndSettings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
-//             if (businessError) {
-//                 setMessage('Error fetching business details: ' + businessError.message);
-//                 console.error('Error fetching business:', businessError);
-//                 setLoading(false);
-//                 return;
-//             }
+  const fetchBusinessAndSettings = async () => {
+    try {
+      setLoading(true);
 
-//             if (!businessData) {
-//                 setMessage('Business not found.');
-//                 setLoading(false);
-//                 return;
-//             }
+      const { data: bizData, error: bizError } = await supabase
+        .from("businesses")
+        .select(
+          "id, slug, business_name, razorpay_enabled, razorpay_key_id, payment_methods"
+        )
+        .eq("slug", slug)
+        .single();
 
-//             setBusinessId(businessData.id);
-//             setOwnerUserId(businessData.owner_user_id);
+      if (bizError || !bizData) {
+        if (isDev) console.error("Business fetch error:", bizError);
+        toast.error("Unable to load this page.");
+        router.push("/");
+        return;
+      }
 
-//             // Fetch successful, set form fields
-//             setSettings({
-//                 razorpay_key_id: businessData.razorpay_key_id || '',
-//                 razorpay_secret_key: businessData.razorpay_secret_key || '',
-//             });
+      setBusiness(bizData);
 
-//             setLoading(false);
-//         }
+      // Keep display minimal: do not show any portion/pattern of saved credentials
+      const maskedKey = bizData.razorpay_key_id ? "configured" : null;
 
-//         fetchSettings();
-//     }, [businessSlug, supabase]);
+      setSettings({
+        razorpay_enabled: !!bizData.razorpay_enabled,
+        razorpay_key_masked: maskedKey,
+        payment_methods: bizData.payment_methods || { cod: true, online: false },
+      });
+    } catch (error) {
+      if (isDev) console.error("Fetch error:", error);
+      toast.error("Failed to load settings.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//     const handleChange = (e) => {
-//         const { name, value } = e.target;
-//         setSettings(prev => ({ ...prev, [name]: value }));
-//     };
+  // ✅ Save via API (encryption/storage happens server-side)
+  const handleSaveCredentials = async () => {
+    if (!credentials.razorpay_key_id || !credentials.razorpay_key_secret) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
 
-//     const handleSave = async (e) => {
-//         e.preventDefault();
-//         setLoading(true);
-//         setMessage('');
+    // Keep validation generic (avoid revealing exact expected formats/patterns)
+    if (credentials.razorpay_key_id.length < 8) {
+      toast.error("Key ID looks invalid. Please re-check and try again.");
+      return;
+    }
 
-//         if (!businessId || !ownerUserId) {
-//             setMessage('Error: Business or owner ID not found. Cannot save.');
-//             setLoading(false);
-//             return;
-//         }
+    if (credentials.razorpay_key_secret.length < 10) {
+      toast.error("Key Secret looks invalid. Please re-check and try again.");
+      return;
+    }
 
-//         // IMPORTANT: Yahan aapko verify karna hoga ki current logged in user (`auth.uid()`)
-//         // is `ownerUserId` ke barabar hai. Client-side pe confirm karne ke liye
-//         // Lucia ka useAuth() hook ya similar method se current user ID get karein.
-//         // Server-side RLS already check karega, but client-side UI feedback ke liye bhi achha hai.
-//         // For example:
-//         // if (user && user.id !== ownerUserId) {
-//         //   setMessage('You do not have permission to save these settings.');
-//         //   setLoading(false);
-//         //   return;
-//         // }
+    if (!business?.id) {
+      toast.error("Business not loaded. Please refresh.");
+      return;
+    }
 
+    setSaving(true);
 
-//         const { error } = await supabase
-//             .from('businesses')
-//             .update({
-//                 razorpay_key_id: settings.razorpay_key_id,
-//                 razorpay_secret_key: settings.razorpay_secret_key,
-//                 // Add is_payment_enabled if you implement it
-//             })
-//             .eq('id', businessId) // Business ID se update karein
-//             .eq('owner_user_id', ownerUserId); // Aur owner ID se bhi match karein (RLS help karega)
+    try {
+      const response = await fetch("/api/payment/save-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId: business.id,
+          razorpay_key_id: credentials.razorpay_key_id,
+          razorpay_key_secret: credentials.razorpay_key_secret,
+        }),
+      });
 
-//         if (error) {
-//             setMessage('Error saving settings: ' + error.message);
-//             console.error('Error updating business settings:', error);
-//         } else {
-//             setMessage('Settings saved successfully!');
-//         }
-//         setLoading(false);
-//     };
+      const data = await response.json().catch(() => null);
 
-//     // Clear Fields button ka function
-//     const handleClear = () => {
-//         setSettings({
-//             razorpay_key_id: '',
-//             razorpay_secret_key: '',
-//         });
-//         setMessage('Fields cleared. "Save Settings" par click karke changes permanent karein.');
-//     };
+      if (!response.ok || !data?.success) {
+        toast.error((data && data.error) || "Failed to save credentials.");
+        return;
+      }
 
-//     if (loading) {
-//         return <div className="p-4 text-center">Loading payment settings...</div>;
-//     }
+      toast.success("Razorpay connected.");
+      setCredentials({ razorpay_key_id: "", razorpay_key_secret: "" });
+      setShowCredentialForm(false);
+      fetchBusinessAndSettings();
+    } catch (error) {
+      if (isDev) console.error("Save error:", error);
+      toast.error("Failed to save credentials.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-//     // Optional: Agar current user, fetched ownerUserId se match nahi karta toh
-//     // return <div className="p-4 text-red-600">Access Denied: You are not the owner of this business.</div>;
+  const handleToggleCOD = async (enabled) => {
+    if (!business?.id) return;
 
-//     return (
-//         <div className="p-6 max-w-lg mx-auto bg-white rounded-lg shadow-md mt-8">
-//             <h1 className="text-2xl font-bold mb-4 text-gray-800">Payment Gateway Settings</h1>
-//             <p className="text-sm text-gray-600 mb-6">
-//                 Yahan aap apne Razorpay API Keys daal sakte hain. Jab aap live payment lena shuru karenge,
-//                 aapko Razorpay par KYC (PAN, Bank details) complete karni hogi. Test keys ke liye KYC ki zaroorat nahi hai.
-//             </p>
+    setSaving(true);
+    try {
+      const updatedMethods = {
+        ...settings.payment_methods,
+        cod: enabled,
+      };
 
-//             <form onSubmit={handleSave} className="space-y-4">
-//                 <div>
-//                     <label htmlFor="razorpay_key_id" className="block text-sm font-medium text-gray-700">
-//                         Razorpay Key ID (Public Key)
-//                     </label>
-//                     <input
-//                         type="text"
-//                         id="razorpay_key_id"
-//                         name="razorpay_key_id"
-//                         value={settings.razorpay_key_id}
-//                         onChange={handleChange}
-//                         placeholder="rzp_live_xxxxxxxxxxxxxxxx"
-//                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-//                     />
-//                     <p className="mt-1 text-xs text-gray-500">Ye key aapko apne Razorpay dashboard se milegi. Ye 'rzp_live_' ya 'rzp_test_' se shuru hoti hai.</p>
-//                 </div>
+      const { error } = await supabase
+        .from("businesses")
+        .update({
+          payment_methods: updatedMethods,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", business.id);
 
-//                 <div>
-//                     <label htmlFor="razorpay_secret_key" className="block text-sm font-medium text-gray-700">
-//                         Razorpay Secret Key
-//                     </label>
-//                     <input
-//                         type="password"
-//                         id="razorpay_secret_key"
-//                         name="razorpay_secret_key"
-//                         value={settings.razorpay_secret_key}
-//                         onChange={handleChange}
-//                         placeholder="********"
-//                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-//                     />
-//                     <p className="mt-1 text-xs text-gray-500">Ye key bahut confidential hai. Ise kabhi kisi se share na karein.</p>
-//                 </div>
+      if (error) {
+        if (isDev) console.error("COD update error:", error);
+        toast.error("Failed to update settings.");
+        return;
+      }
 
-//                 <div className="flex space-x-4">
-//                     <button
-//                         type="submit"
-//                         disabled={loading}
-//                         className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-//                     >
-//                         {loading ? 'Saving...' : 'Save Settings'}
-//                     </button>
-//                     <button
-//                         type="button"
-//                         onClick={handleClear}
-//                         disabled={loading}
-//                         className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-//                     >
-//                         Clear Fields
-//                     </button>
-//                 </div>
-//             </form>
+      setSettings((prev) => ({
+        ...prev,
+        payment_methods: updatedMethods,
+      }));
+      toast.success("Settings updated.");
+    } catch (error) {
+      if (isDev) console.error("COD update exception:", error);
+      toast.error("Failed to update settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-//             {message && (
-//                 <p className={`mt-4 text-sm ${message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
-//                     {message}
-//                 </p>
-//             )}
-//         </div>
-//     );
-// }
+  const handleRemoveRazorpay = async () => {
+    if (!confirm("Disconnect Razorpay? Online payments will be disabled.")) {
+      return;
+    }
 
+    if (!business?.id) return;
 
-import React from 'react'
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("businesses")
+        .update({
+          razorpay_key_id: null,
+          razorpay_key_secret: null,
+          razorpay_enabled: false,
+          payment_methods: { ...settings.payment_methods, online: false },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", business.id);
 
-const payments = () => {
+      if (error) {
+        if (isDev) console.error("Remove Razorpay error:", error);
+        toast.error("Failed to disconnect.");
+        return;
+      }
+
+      toast.success("Razorpay disconnected.");
+      fetchBusinessAndSettings();
+    } catch (error) {
+      if (isDev) console.error("Remove Razorpay exception:", error);
+      toast.error("Failed to disconnect.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!business) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <div className="text-center">
+          <p className="text-xl text-red-500 mb-4">Unable to load page</p>
+          <Link href="/" className="text-indigo-600 hover:underline">
+            Go Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className='bg-black h-screen flex items-center justify-center h-full w-full '>
-        <p className='text-white text-7xl font-bold'>Comming Soon..</p>
-    </div>
-  )
-}
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        <Link
+          href={`/site/${slug}/admin`}
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 mb-6 transition"
+        >
+          <FaArrowLeft /> Back to Dashboard
+        </Link>
 
-export default payments
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Payment Settings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {business.business_name} - Configure payment methods
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {/* RAZORPAY */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg overflow-hidden">
+            <div className="p-6 border-b dark:border-zinc-800">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <SiRazorpay className="text-2xl text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold dark:text-white">
+                      Razorpay
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Online payments
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                    settings.razorpay_enabled
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400"
+                  }`}
+                >
+                  {settings.razorpay_enabled ? (
+                    <>
+                      <FaCheckCircle /> Connected
+                    </>
+                  ) : (
+                    <>
+                      <FaTimesCircle /> Not Connected
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Connected State */}
+              {settings.razorpay_enabled ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-xl flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <FaLock className="text-green-600" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Status:
+                        </p>
+                        <p className="font-medium text-green-700 dark:text-green-400">
+                          Connected
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRemoveRazorpay}
+                      disabled={saving}
+                      className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition disabled:opacity-50"
+                    >
+                      <FaTrash /> Disconnect
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setShowCredentialForm(!showCredentialForm)}
+                    className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                  >
+                    {showCredentialForm ? "Cancel" : "Update Credentials"}
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Credential Form */}
+              {(showCredentialForm || !settings.razorpay_enabled) && (
+                <div className="space-y-4">
+                  {!settings.razorpay_enabled && (
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Connect your Razorpay account to accept online payments.
+                    </p>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                      Key ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={credentials.razorpay_key_id}
+                      onChange={(e) =>
+                        setCredentials((prev) => ({
+                          ...prev,
+                          razorpay_key_id: e.target.value.trim(),
+                        }))
+                      }
+                      placeholder="Enter Key ID"
+                      className="w-full p-3 border rounded-xl dark:bg-zinc-800 dark:text-white dark:border-zinc-700 font-mono text-sm"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                      Key Secret <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showSecret ? "text" : "password"}
+                        value={credentials.razorpay_key_secret}
+                        onChange={(e) =>
+                          setCredentials((prev) => ({
+                            ...prev,
+                            razorpay_key_secret: e.target.value.trim(),
+                          }))
+                        }
+                        placeholder="Enter Key Secret"
+                        className="w-full p-3 pr-12 border rounded-xl dark:bg-zinc-800 dark:text-white dark:border-zinc-700 font-mono text-sm"
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecret(!showSecret)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        aria-label={showSecret ? "Hide secret" : "Show secret"}
+                      >
+                        {showSecret ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveCredentials}
+                    disabled={
+                      saving ||
+                      !credentials.razorpay_key_id ||
+                      !credentials.razorpay_key_secret
+                    }
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-xl transition flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaLock /> Connect
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Tip: Keep these credentials private. Only authorized admins
+                    should have access to this page.
+                  </p>
+                </div>
+              )}
+
+              {/* Help (kept minimal; no operational/security specifics) */}
+              <details className="mt-6">
+                <summary className="text-sm text-indigo-600 dark:text-indigo-400 cursor-pointer font-medium">
+                  Need help finding your Razorpay credentials?
+                </summary>
+                <div className="mt-3 p-4 bg-gray-50 dark:bg-zinc-800 rounded-xl text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                  <p>
+                    Open your Razorpay dashboard and locate your API Keys
+                    section.
+                  </p>
+                  <p>
+                    <a
+                      href="https://dashboard.razorpay.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 underline"
+                    >
+                      Go to Razorpay Dashboard
+                    </a>
+                  </p>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          {/* COD */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <FaMoneyBillWave className="text-2xl text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold dark:text-white">
+                    Cash on Delivery
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Pay when order is delivered
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.payment_methods?.cod ?? true}
+                  onChange={(e) => handleToggleCOD(e.target.checked)}
+                  disabled={saving}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-gray-200 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Status Summary */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+            <h3 className="text-lg font-semibold mb-4">Payment Status</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2 text-sm opacity-90">
+                  <SiRazorpay />
+                  <span>Online</span>
+                </div>
+                <p
+                  className={`text-xl font-bold ${
+                    settings.razorpay_enabled ? "text-green-300" : "text-red-300"
+                  }`}
+                >
+                  {settings.razorpay_enabled ? "Active" : "Off"}
+                </p>
+              </div>
+              <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2 text-sm opacity-90">
+                  <FaMoneyBillWave />
+                  <span>COD</span>
+                </div>
+                <p
+                  className={`text-xl font-bold ${
+                    settings.payment_methods?.cod
+                      ? "text-green-300"
+                      : "text-red-300"
+                  }`}
+                >
+                  {settings.payment_methods?.cod ? "Active" : "Off"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

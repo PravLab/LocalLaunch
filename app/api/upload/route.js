@@ -1,7 +1,9 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge"; // 🛡️ required for Vercel Edge Functions
+// export const runtime = "edge"; // 🛡️ required for Vercel Edge Functions
+export const runtime = "nodejs";
+
 
 export async function POST(request) {
   try {

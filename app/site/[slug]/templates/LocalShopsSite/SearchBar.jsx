@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useBusiness } from "@/src/context/BusinessContext";
 import { Search } from "lucide-react";
+import Image from "next/image";
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
@@ -82,7 +83,9 @@ export default function SearchBar() {
               className="flex items-center px-4 py-3 hover:bg-gray-100 gap-4"
             >
               {product.image ? (
-                <img
+                <Image
+                height={40}
+                width={30}
                   src={product.image}
                   alt={product.name}
                   className="w-10 h-10 object-cover rounded"

@@ -1,14 +1,55 @@
-// ✅ Final Clean Production Version of Site Info Page (Based on Supabase Schema)
+// app/site/[slug]/admin/site-info/page.js
 "use client";
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Wrench, RefreshCw, ArrowLeftCircle } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 
-export default function SiteInfoPage({ params }) {
+// --------- SECURITY HELPERS ---------
+
+// Basic text sanitization to reduce XSS risk
+const sanitizeText = (value, maxLen = 500) => {
+  if (typeof value !== "string") return "";
+  return value
+    .slice(0, maxLen)                       // limit length
+    .replace(/[<>]/g, "")                   // strip angle brackets
+    .replace(/javascript:/gi, "")           // strip javascript: URLs
+    .replace(/on\w+=/gi, "")                // strip inline event handlers
+    .replace(/<\/?script.*?>/gi, "");       // strip script tags
+};
+
+const sanitizeEmail = (value) => {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .slice(0, 254)
+    .replace(/[<>\s]/g, ""); // no spaces or angle brackets
+};
+
+const sanitizePhone = (value) => {
+  if (typeof value !== "string") return "";
+  // keep only digits and plus, limit length
+  return value.replace(/[^\d+]/g, "").slice(0, 15);
+};
+
+// Sanitize whole siteInfo object before saving to DB
+const sanitizeSiteInfoForDb = (info) => ({
+  business_name: sanitizeText(info.business_name, 200),
+  owner_name: sanitizeText(info.owner_name, 200),
+  phone: sanitizePhone(info.phone),
+  email: sanitizeEmail(info.email),
+  type: sanitizeText(info.type, 100),
+  description: sanitizeText(info.description, 2000),
+  address: sanitizeText(info.address, 1000),
+  whatsapp: sanitizePhone(info.whatsapp),
+  logo: sanitizeText(info.logo, 500), // URL, but still strip weird stuff
+});
+
+export default function SiteInfoPage() {
   const [siteInfo, setSiteInfo] = useState({
     business_name: "",
     owner_name: "",
@@ -23,9 +64,11 @@ export default function SiteInfoPage({ params }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef();
+  const fileInputRef = useRef(null);
   const router = useRouter();
-  const {slug} =  params;
+
+  const params = useParams();
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   useEffect(() => {
     if (!slug) return;
@@ -42,8 +85,19 @@ export default function SiteInfoPage({ params }) {
       if (error) {
         toast.error("Failed to fetch site info");
         console.error(error);
-      } else {
-        setSiteInfo(data);
+      } else if (data) {
+        // Sanitize data coming from DB before using it
+        setSiteInfo({
+          business_name: sanitizeText(data.business_name || "", 200),
+          owner_name: sanitizeText(data.owner_name || "", 200),
+          phone: sanitizePhone(data.phone || ""),
+          email: sanitizeEmail(data.email || ""),
+          type: sanitizeText(data.type || "", 100),
+          description: sanitizeText(data.description || "", 2000),
+          address: sanitizeText(data.address || "", 1000),
+          whatsapp: sanitizePhone(data.whatsapp || ""),
+          logo: sanitizeText(data.logo || "", 500),
+        });
       }
       setLoading(false);
     };
@@ -53,29 +107,56 @@ export default function SiteInfoPage({ params }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Do not allow changing email from this page
+    if (name === "email") return;
+
     setSiteInfo((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const validate = () => {
     const newErrors = {};
+
     if (!siteInfo.business_name.trim()) newErrors.business_name = "Required";
-    if (!siteInfo.email.match(/^[^@\s]+@[^@\s]+\.[^@\s]+$/)) newErrors.email = "Invalid email";
-    if (!siteInfo.phone.match(/^\+?[0-9]{10,15}$/)) newErrors.phone = "Invalid phone number";
+
+    if (
+      !siteInfo.email ||
+      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(siteInfo.email.trim())
+    ) {
+      newErrors.email = "Invalid email";
+    }
+
+    if (
+      !siteInfo.phone ||
+      !/^\+?[0-9]{10,15}$/.test(siteInfo.phone.trim())
+    ) {
+      newErrors.phone = "Invalid phone number";
+    }
+
     if (!siteInfo.address.trim()) newErrors.address = "Required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
+    if (!slug) {
+      toast.error("Missing store slug");
+      return;
+    }
     if (!validate()) return;
+
+    // Sanitize before sending to DB
+    const safeInfo = sanitizeSiteInfoForDb(siteInfo);
 
     const { error } = await supabase
       .from("businesses")
-      .update(siteInfo)
+      .update(safeInfo)
       .eq("slug", slug);
 
     if (error) {
+      console.error(error);
       toast.error("Failed to update site info");
     } else {
       toast.success("Site info updated successfully");
@@ -83,29 +164,30 @@ export default function SiteInfoPage({ params }) {
   };
 
   const clearForm = () => {
-    setSiteInfo({
+    setSiteInfo((prev) => ({
       business_name: "",
       owner_name: "",
       phone: "",
-      email: "",
+      email: prev.email, // keep existing locked email
       type: "",
       description: "",
       address: "",
       whatsapp: "",
       logo: "",
-    });
+    }));
     setErrors({});
   };
 
   const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -113,7 +195,10 @@ export default function SiteInfoPage({ params }) {
 
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
-      setSiteInfo((prev) => ({ ...prev, logo: url }));
+
+      // Sanitize URL string
+      const safeUrl = sanitizeText(url || "", 500);
+      setSiteInfo((prev) => ({ ...prev, logo: safeUrl }));
       toast.success("Logo uploaded");
     } catch (err) {
       console.error("Upload failed:", err);
@@ -149,26 +234,43 @@ export default function SiteInfoPage({ params }) {
               { label: "Phone", name: "phone", placeholder: "+91 XXXXXX XXXX" },
               { label: "Type", name: "type", placeholder: "Business Type" },
               { label: "WhatsApp", name: "whatsapp", placeholder: "+91 XXXXX XXXXX" },
-            ].map(({ label, name, placeholder }) => (
-              <div key={name}>
-                <label className="block font-medium">{label}</label>
-                <input
-                  type="text"
-                  name={name}
-                  value={siteInfo[name] || ""}
-                  onChange={handleChange}
-                  placeholder={placeholder}
-                  className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-900 text-black dark:text-white"
-                />
-                {errors[name] && <p className="text-sm text-red-500">{errors[name]}</p>}
-              </div>
-            ))}
+            ].map(({ label, name, placeholder }) => {
+              const isEmail = name === "email";
+
+              return (
+                <div key={name}>
+                  <label className="block font-medium">{label}</label>
+                  <input
+                    type="text"
+                    name={name}
+                    value={siteInfo[name] || ""}
+                    onChange={handleChange}
+                    placeholder={placeholder}
+                    readOnly={isEmail}
+                    disabled={isEmail}
+                    className={`w-full mt-1 p-2 border rounded text-black dark:text-white ${
+                      isEmail
+                        ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed"
+                        : "bg-white dark:bg-gray-900"
+                    }`}
+                  />
+                  {isEmail && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Email is permanent and cannot be changed.
+                    </p>
+                  )}
+                  {errors[name] && (
+                    <p className="text-sm text-red-500">{errors[name]}</p>
+                  )}
+                </div>
+              );
+            })}
 
             <div>
               <label className="block font-medium">Description</label>
               <textarea
                 name="description"
-                value={siteInfo.description}
+                value={siteInfo.description || ""}
                 onChange={handleChange}
                 placeholder="Your store description"
                 className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-900 text-black dark:text-white"
@@ -179,12 +281,14 @@ export default function SiteInfoPage({ params }) {
               <label className="block font-medium">Address</label>
               <textarea
                 name="address"
-                value={siteInfo.address}
+                value={siteInfo.address || ""}
                 onChange={handleChange}
                 placeholder="Your full address"
                 className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-900 text-black dark:text-white"
               />
-              {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
+              {errors.address && (
+                <p className="text-sm text-red-500">{errors.address}</p>
+              )}
             </div>
 
             <div>
@@ -200,10 +304,14 @@ export default function SiteInfoPage({ params }) {
                 <Image
                   src={siteInfo.logo}
                   alt="Logo Preview"
+                  width={96}
+                  height={96}
                   className="w-24 h-24 mt-3 object-contain border rounded"
                 />
               )}
-              {uploading && <p className="text-sm text-yellow-500 mt-1">Uploading...</p>}
+              {uploading && (
+                <p className="text-sm text-yellow-500 mt-1">Uploading...</p>
+              )}
             </div>
 
             <div className="flex gap-4 mt-6">

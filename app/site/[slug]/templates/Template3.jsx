@@ -5,6 +5,7 @@ import { useBusiness } from "@/src/context/BusinessContext";
 import WhatsAppButton from "./LocalShopsSite/WhatsAppButton";
 import Footer from "./LocalShopsSite/Footer";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export default function Template3({ business }) {
   const products = business.products || [];
@@ -63,7 +64,7 @@ export default function Template3({ business }) {
               whileHover={{ scale: 1.03 }}
               className="bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition"
             >
-              <img
+              <Image
                 src={product.image}
                 alt={product.name}
                 className="w-full h-48 object-cover"

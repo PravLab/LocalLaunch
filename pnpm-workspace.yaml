@@ -1,6 +1,0 @@
-onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
-  - canvas
-  - sharp
-  - supabase
-  - unrs-resolver

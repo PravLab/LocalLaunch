@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function ProductCard({ product, businessSlug }) {
   const slug = product.slug || product.name.toLowerCase().replace(/\s+/g, "-");
@@ -8,7 +9,7 @@ export default function ProductCard({ product, businessSlug }) {
      <Link href={`/product/${slug}`}> // if already passing correct slug
 
       <div className="bg-white text-black rounded-xl shadow-md hover:shadow-lg transition cursor-pointer">
-        <img
+        <Image
           src={product.image || "/placeholder.jpg"}
           alt={product.name}
           className="w-full h-44 object-cover rounded-t-xl"

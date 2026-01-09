@@ -59,3 +59,6 @@ export default function BlogPage({ params }) {
     </main>
   );
 }
+
+
+export const dynamicParams = true;

@@ -1,5 +1,6 @@
 "use client";
 import { useBusiness } from "@/src/context/BusinessContext";
+import Image from "next/image";
 
 export default function WhatsAppButton() {
   const { business } = useBusiness();
@@ -15,7 +16,9 @@ export default function WhatsAppButton() {
         rel="noopener noreferrer"
         className="w-20 h-20 bg-green-500 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
       >
-        <img
+        <Image
+          height={30}
+          width={30}
           src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
           alt="WhatsApp"
           className="w-10 h-10"

@@ -13,6 +13,8 @@ import {
 } from "react-icons/fa";
 import { Share2 } from "lucide-react";
 import { useBusiness } from "@/src/context/BusinessContext";
+import Image from "next/image";
+
 
 export default function TemplateThree({ siteName, fullURL, logo }) {
   const qrRef = useRef();
@@ -127,7 +129,7 @@ useEffect(() => {
       <div className="w-full max-w-sm bg-white rounded-3xl border shadow-xl overflow-hidden">
         <div ref={posterRef} className="p-6 flex flex-col items-center text-center">
           {logo && (
-            <img
+            <Image
               src={logo}
               alt="Logo"
               className="w-16 h-16 mb-3 rounded-full border object-contain"
